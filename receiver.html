@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>光渡 · 二维码文件接收</title>
+  <link rel="stylesheet" href="src/styles.css">
+  <script src="vendor/jsQR.js" defer></script>
+  <script src="src/protocol-browser.js" defer></script>
+  <script src="src/receiver.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="receiver.html" aria-label="光渡接收端"><span class="brand-mark">QD</span><span>光渡</span></a>
+    <nav aria-label="模式切换"><a class="nav-link" href="sender.html">发送</a><a class="nav-link active" href="receiver.html">接收</a></nav>
+    <span class="offline-badge"><i></i> 全程离线</span>
+  </header>
+
+  <main class="app-shell receiver-layout">
+    <section class="panel camera-panel">
+      <div class="camera-header"><div><p class="kicker">外网设备</p><h1>对准屏幕，<br>开始接收</h1></div><span id="camera-state" class="status-pill">摄像头未启动</span></div>
+      <div class="camera-stage">
+        <video id="camera-video" playsinline muted></video>
+        <canvas id="scan-canvas" hidden></canvas>
+        <div class="scan-frame"><i></i><i></i><i></i><i></i></div>
+        <div id="camera-placeholder" class="camera-placeholder"><span class="lens"></span><strong>等待摄像头权限</strong><small>请保持二维码完整进入取景框</small></div>
+      </div>
+      <div class="camera-actions">
+        <button id="camera-button" class="primary-button" type="button">启动摄像头</button>
+        <button id="reset-button" class="secondary-button" type="button">清空重来</button>
+      </div>
+      <p class="message">若浏览器拒绝本地页面使用摄像头，请按 README 启动本地服务。</p>
+    </section>
+
+    <section class="panel receive-panel">
+      <div>
+        <p class="kicker">接收进度</p>
+        <div class="progress-number"><strong id="receive-percent">0</strong><span>%</span></div>
+        <div class="progress-track large"><span id="receive-progress"></span></div>
+        <div class="progress-caption"><span id="received-count">0 / 0 帧</span><span id="receive-status">等待元数据帧</span></div>
+      </div>
+
+      <div id="receive-file-card" class="receive-file-card empty-card">
+        <span class="file-chip">OUTPUT</span>
+        <strong id="receive-file-name">尚未识别文件</strong>
+        <span id="receive-file-size">先扫描发送端显示的第 1 帧</span>
+        <code id="receive-hash">SHA-256 —</code>
+      </div>
+
+      <div class="event-log" aria-live="polite">
+        <div><span class="event-dot"></span><p><strong id="event-title">准备就绪</strong><small id="event-detail">启动摄像头后会自动识别二维码</small></p></div>
+      </div>
+
+      <button id="download-button" class="download-button" type="button" disabled><span>下载已校验文件</span><small>收齐全部分片后可用</small></button>
+    </section>
+  </main>
+</body>
+</html>

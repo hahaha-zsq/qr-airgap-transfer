@@ -1,0 +1,8 @@
+.git
+.idea
+.DS_Store
+node_modules
+outputs
+work
+docs
+tests

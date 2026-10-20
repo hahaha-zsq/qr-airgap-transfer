@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>光渡 · 二维码文件发送</title>
+  <link rel="stylesheet" href="src/styles.css">
+  <script src="vendor/qrcode.js" defer></script>
+  <script src="src/protocol-browser.js" defer></script>
+  <script src="src/sender.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="sender.html" aria-label="光渡发送端"><span class="brand-mark">QD</span><span>光渡</span></a>
+    <nav aria-label="模式切换"><a class="nav-link active" href="sender.html">发送</a><a class="nav-link" href="receiver.html">接收</a></nav>
+    <span class="offline-badge"><i></i> 全程离线</span>
+  </header>
+
+  <main class="app-shell sender-layout">
+    <section class="panel control-panel">
+      <div>
+        <p class="kicker">内网电脑</p>
+        <h1>把文件变成<br>连续二维码</h1>
+        <p class="lede">文件只在当前浏览器内处理，不会上传。外网设备对准屏幕扫描即可恢复。</p>
+      </div>
+
+      <label class="dropzone" for="file-input">
+        <input id="file-input" type="file">
+        <span class="drop-icon">＋</span>
+        <strong>选择文件</strong>
+        <small>建议单个文件不超过 20 MB</small>
+      </label>
+
+      <div class="settings-grid">
+        <label>每帧字节
+          <input id="chunk-size-input" type="number" min="200" max="1400" step="100" value="1200">
+        </label>
+        <label>播放间隔
+          <select id="interval-input">
+            <option value="150">150 ms · 快</option>
+            <option value="250" selected>250 ms · 推荐</option>
+            <option value="400">400 ms · 稳定</option>
+            <option value="700">700 ms · 慢速</option>
+          </select>
+        </label>
+      </div>
+
+      <div id="file-card" class="file-card hidden" aria-live="polite">
+        <div><span class="file-chip">FILE</span><strong id="file-name">—</strong></div>
+        <dl>
+          <div><dt>大小</dt><dd id="file-size">—</dd></div>
+          <div><dt>数据帧</dt><dd id="frame-total">—</dd></div>
+          <div><dt>预计一轮</dt><dd id="time-estimate">—</dd></div>
+        </dl>
+        <p id="file-hash" class="hash-text">SHA-256 —</p>
+      </div>
+
+      <aside class="notice"><strong>使用前请确认</strong><span>二维码不会绕过单位的数据安全制度。请勿外传未获授权的敏感信息。</span></aside>
+    </section>
+
+    <section class="panel qr-panel">
+      <div class="qr-toolbar">
+        <div><span id="frame-kind" class="status-pill">等待文件</span><strong id="frame-counter">0 / 0</strong></div>
+        <button id="fullscreen-button" class="icon-button" type="button" disabled>全屏显示</button>
+      </div>
+      <div id="qr-output" class="qr-stage empty" aria-live="polite">
+        <div class="empty-state"><span class="empty-grid"></span><strong>二维码将在这里显示</strong><small>选择文件后，先让接收端扫描第 1 帧元数据</small></div>
+      </div>
+      <div class="progress-track"><span id="send-progress"></span></div>
+      <div class="transport-controls">
+        <button id="previous-button" class="secondary-button" type="button" disabled>上一帧</button>
+        <button id="play-button" class="primary-button" type="button" disabled>开始播放</button>
+        <button id="next-button" class="secondary-button" type="button" disabled>下一帧</button>
+      </div>
+      <p id="sender-message" class="message">请选择要传输的文件。</p>
+    </section>
+  </main>
+</body>
+</html>

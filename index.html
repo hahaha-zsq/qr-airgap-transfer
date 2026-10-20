@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>光渡 · 离线二维码文件传输</title>
+  <link rel="stylesheet" href="src/styles.css">
+  <style>
+    .launch-shell{min-height:100vh;display:grid;place-items:center;padding:24px}.launch-card{width:min(920px,100%);padding:clamp(30px,6vw,72px);border:1px solid var(--line);border-radius:24px;background:var(--panel)}.launch-card h1{max-width:10ch}.launch-card .lede{margin-bottom:42px}.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.mode-link{min-height:190px;padding:28px;display:flex;flex-direction:column;justify-content:space-between;border:1px solid var(--line);border-radius:16px;color:var(--text);background:var(--panel-2);text-decoration:none;transition:border-color .2s,transform .2s}.mode-link:hover{border-color:var(--lime);transform:translateY(-2px)}.mode-link span{color:var(--lime);font:700 11px/1 ui-monospace,monospace;letter-spacing:.1em}.mode-link strong{font-size:30px;letter-spacing:-.04em}.mode-link small{color:var(--muted);line-height:1.5}.launch-foot{margin:24px 0 0;color:var(--muted);font-size:11px}@media(max-width:620px){.mode-grid{grid-template-columns:1fr}.mode-link{min-height:150px}}
+  </style>
+</head>
+<body>
+  <main class="launch-shell">
+    <section class="launch-card">
+      <p class="kicker">QR AIR-GAP TRANSFER</p>
+      <h1>选择这台设备的角色</h1>
+      <p class="lede">整个传输只经过屏幕与摄像头，不连接内外网。</p>
+      <div class="mode-grid">
+        <a class="mode-link" href="sender.html"><span>内网电脑</span><strong>发送文件 →</strong><small>选择文件，生成并播放连续二维码</small></a>
+        <a class="mode-link" href="receiver.html"><span>外网设备</span><strong>接收文件 →</strong><small>打开摄像头，扫描、校验并下载</small></a>
+      </div>
+      <p class="launch-foot">使用本工具不代表获得数据外传授权，请遵守所在组织的安全制度。</p>
+    </section>
+  </main>
+</body>
+</html>
