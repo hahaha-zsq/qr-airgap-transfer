@@ -125,7 +125,7 @@ pipeline {
                     // 先在隔离网络中检查镜像健康，候选镜像失败时不影响当前线上容器。
                     sh "set +x; docker rm -f ${probeContainer} 2>/dev/null || true"
                     try {
-                        sh "set +x; docker run -d --rm --network none --name ${probeContainer} ${newImage}"
+                        sh "set +x; docker run -d --network none --name ${probeContainer} ${newImage}"
                         def probeReady = false
                         for (int i = 0; i < 20; i++) {
                             sleep 1
@@ -143,6 +143,7 @@ pipeline {
                             }
                         }
                         if (!probeReady) {
+                            sh "set +x; docker inspect ${probeContainer} 2>/dev/null || true"
                             sh "set +x; docker logs ${probeContainer} 2>/dev/null || true"
                             error("候选镜像健康检查失败: ${newImage}")
                         }
