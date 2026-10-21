@@ -30,6 +30,7 @@ pipeline {
         APP_BIND_IP    = '172.17.0.1'                    // Docker 默认 bridge 网关
         DEPLOY_DIR     = '/var/lib/jenkins/qr-airgap-transfer' // VERSION 跨构建持久化
         KEEP_VERSIONS  = '3'                             // 本地保留最近几个镜像版本
+        NODE_IMAGE     = 'node:20-alpine'                // 避免依赖 Jenkins agent 的 Node.js 安装
     }
 
     options {
@@ -87,16 +88,36 @@ pipeline {
                     // ---------- 3. 校验前端并构建候选镜像 ----------
                     sh '''
                         set -eu
-                        node --version
-                        node -e 'if (Number(process.versions.node.split(".")[0]) < 20) process.exit(1)'
                         test -s index.html
                         test -s sender.html
                         test -s receiver.html
                         test -s src/protocol-browser.js
                         test -s vendor/jsQR.js
-                        node --check src/protocol-browser.js
-                        node --check src/sender.js
-                        node --check src/receiver.js
+                        docker run --rm \
+                            --user "$(id -u):$(id -g)" \
+                            --volume "$WORKSPACE:/workspace:ro" \
+                            --workdir /workspace \
+                            "$NODE_IMAGE" node --version
+                        docker run --rm \
+                            --user "$(id -u):$(id -g)" \
+                            --volume "$WORKSPACE:/workspace:ro" \
+                            --workdir /workspace \
+                            "$NODE_IMAGE" node -e 'if (Number(process.versions.node.split(".")[0]) < 20) process.exit(1)'
+                        docker run --rm \
+                            --user "$(id -u):$(id -g)" \
+                            --volume "$WORKSPACE:/workspace:ro" \
+                            --workdir /workspace \
+                            "$NODE_IMAGE" node --check src/protocol-browser.js
+                        docker run --rm \
+                            --user "$(id -u):$(id -g)" \
+                            --volume "$WORKSPACE:/workspace:ro" \
+                            --workdir /workspace \
+                            "$NODE_IMAGE" node --check src/sender.js
+                        docker run --rm \
+                            --user "$(id -u):$(id -g)" \
+                            --volume "$WORKSPACE:/workspace:ro" \
+                            --workdir /workspace \
+                            "$NODE_IMAGE" node --check src/receiver.js
                     '''
 
                     sh "set +x; docker build --pull --label org.opencontainers.image.revision=${env.GIT_COMMIT ?: 'unknown'} --tag ${newImage} ."
