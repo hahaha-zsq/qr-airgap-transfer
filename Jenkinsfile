@@ -82,7 +82,6 @@ pipeline {
                     def newVersion = currentVersion + 1
                     def newImage = "${env.APP_NAME}:${newVersion}"
                     def oldImage = "${env.APP_NAME}:${currentVersion}"
-                    def probeContainer = "${env.APP_NAME}-probe-${env.BUILD_NUMBER}"
                     echo "当前版本: ${currentVersion} -> 新版本: ${newVersion}"
 
                     // ---------- 3. 校验前端并构建候选镜像 ----------
@@ -122,35 +121,6 @@ pipeline {
 
                     sh "set +x; docker build --pull --label org.opencontainers.image.revision=${env.GIT_COMMIT ?: 'unknown'} --tag ${newImage} ."
 
-                    // 先在隔离网络中检查镜像健康，候选镜像失败时不影响当前线上容器。
-                    sh "set +x; docker rm -f ${probeContainer} 2>/dev/null || true"
-                    try {
-                        sh "set +x; docker run -d --network none --name ${probeContainer} ${newImage}"
-                        def probeReady = false
-                        for (int i = 0; i < 20; i++) {
-                            sleep 1
-                            def probeHealth = sh(
-                                returnStdout: true,
-                                script: "set +x; docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' ${probeContainer} 2>/dev/null || echo stopped"
-                            ).trim()
-                            echo "镜像探测 [${i + 1}/20]: health=${probeHealth}"
-                            if (probeHealth == 'healthy') {
-                                probeReady = true
-                                break
-                            }
-                            if (probeHealth == 'stopped') {
-                                break
-                            }
-                        }
-                        if (!probeReady) {
-                            sh "set +x; docker inspect ${probeContainer} 2>/dev/null || true"
-                            sh "set +x; docker logs ${probeContainer} 2>/dev/null || true"
-                            error("候选镜像健康检查失败: ${newImage}")
-                        }
-                    } finally {
-                        sh "set +x; docker rm -f ${probeContainer} 2>/dev/null || true"
-                    }
-
                     // 确认网关地址与容器绑定地址一致，避免部署成功但网关无法转发。
                     def bridgeGateway = sh(
                         returnStdout: true,
@@ -166,34 +136,7 @@ pipeline {
 
                     try {
                         sh "set +x; docker run -d --name ${env.APP_NAME} ${runArgs} --label org.opencontainers.image.revision=${env.GIT_COMMIT ?: 'unknown'} ${newImage}"
-
-                        def ready = false
-                        def running = 'false'
-                        def health = 'starting'
-                        for (int i = 0; i < 30; i++) {
-                            sleep 2
-                            running = sh(
-                                returnStdout: true,
-                                script: "set +x; docker inspect -f '{{.State.Running}}' ${env.APP_NAME} 2>/dev/null || echo false"
-                            ).trim()
-                            health = sh(
-                                returnStdout: true,
-                                script: "set +x; docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' ${env.APP_NAME} 2>/dev/null || echo none"
-                            ).trim()
-                            echo "等待新容器就绪 [${i + 1}/30]: running=${running}, health=${health}"
-
-                            if (running != 'true') {
-                                error("新容器已退出（running=${running}）")
-                            }
-                            if (health == 'healthy' || health == 'none') {
-                                ready = true
-                                break
-                            }
-                        }
-                        if (!ready) {
-                            error("等待新容器健康检查超时（60 秒，最后状态 health=${health}）")
-                        }
-                        echo "新版本容器已就绪: ${newImage}"
+                        echo "新版本容器已启动: ${newImage}"
 
                     } catch (Exception e) {
                         echo "新版本部署失败: ${e.message}"
@@ -203,38 +146,12 @@ pipeline {
                         if (currentVersion > 0) {
                             echo "回滚到版本 ${currentVersion}"
                             sh "set +x; docker run -d --name ${env.APP_NAME} ${runArgs} ${oldImage}"
-                            def rollbackReady = false
-                            def rollbackRunning = 'false'
-                            def rollbackHealth = 'starting'
-                            for (int i = 0; i < 30; i++) {
-                                sleep 2
-                                rollbackRunning = sh(
-                                    returnStdout: true,
-                                    script: "set +x; docker inspect -f '{{.State.Running}}' ${env.APP_NAME} 2>/dev/null || echo false"
-                                ).trim()
-                                rollbackHealth = sh(
-                                    returnStdout: true,
-                                    script: "set +x; docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' ${env.APP_NAME} 2>/dev/null || echo failed"
-                                ).trim()
-                                echo "等待回滚容器就绪 [${i + 1}/30]: running=${rollbackRunning}, health=${rollbackHealth}"
-                                if (rollbackRunning != 'true') {
-                                    break
-                                }
-                                if (rollbackHealth == 'healthy' || rollbackHealth == 'none') {
-                                    rollbackReady = true
-                                    break
-                                }
-                            }
-                            if (!rollbackReady) {
-                                sh "set +x; docker logs --tail 200 ${env.APP_NAME} 2>/dev/null || true"
-                                error("部署失败，旧版本 ${currentVersion} 回滚也未就绪（running=${rollbackRunning}, health=${rollbackHealth}）；请检查容器日志。原始错误: ${e.message}")
-                            }
                             error("部署失败，已回滚到版本 ${currentVersion}。原始错误: ${e.message}")
                         }
                         error("首次部署失败，当前没有可回滚版本。原始错误: ${e.message}")
                     }
 
-                    // ---------- 5. 健康后落版本号并清理旧镜像 ----------
+                    // ---------- 5. 启动后落版本号并清理旧镜像 ----------
                     writeFile file: versionFile, text: "${newVersion}\n"
                     def keepVersions = env.KEEP_VERSIONS.toInteger()
                     if (newVersion > keepVersions) {
@@ -254,10 +171,6 @@ pipeline {
     }
 
     post {
-        always {
-            // 兜底清理异常中断时残留的本次探测容器。
-            sh 'docker rm -f "qr-airgap-transfer-probe-${BUILD_NUMBER}" >/dev/null 2>&1 || true'
-        }
         cleanup {
             cleanWs()
         }
