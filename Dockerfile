@@ -12,4 +12,4 @@ COPY vendor/ /usr/share/nginx/html/vendor/
 RUN nginx -t
 
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["nginx", "-g", "pid /tmp/nginx.pid; daemon off;"]
